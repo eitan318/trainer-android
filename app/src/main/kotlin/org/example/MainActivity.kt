@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
 fun App() {
     Surface(Modifier.fillMaxSize()) {
         Box(contentAlignment = Alignment.Center) {
-            Text("Workout v1", style = MaterialTheme.typography.headlineLarge)
+            Text("Workout v2", style = MaterialTheme.typography.headlineLarge)
         }
     }
 }
