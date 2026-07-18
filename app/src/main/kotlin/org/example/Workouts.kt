@@ -1,12 +1,17 @@
 package com.eitan.trainer
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -14,12 +19,16 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -31,19 +40,42 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @Composable
 fun WorkoutListScreen(
     workouts: List<Workout>,
     onWorkoutClick: (String) -> Unit,
     onNewWorkout: () -> Unit,
+    onOpenArchive: () -> Unit,
+    onStartWorkout: (String) -> Unit,
 ) {
+    var isImporting by remember { mutableStateOf(false) }
+    var isExporting by remember { mutableStateOf(false) }
+    var confirmingRemoveId by remember { mutableStateOf<String?>(null) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .safeDrawingPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .safeDrawingPadding()
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Workouts",
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp)
+            )
+            TextButton(onClick = { isImporting = true }) { Text("Import") }
+            TextButton(onClick = { isExporting = true }) { Text("Export") }
+            TextButton(onClick = onOpenArchive) { Text("Archive") }
+        }
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
@@ -52,13 +84,106 @@ fun WorkoutListScreen(
             items(workouts) { workout ->
                 ListItem(
                     headlineContent = { Text(workout.name) },
-                    supportingContent = { Text("Sections: ${workout.sections.size}") },
+                    supportingContent = {
+                        Column {
+                            workout.description?.let { Text(it) }
+                            if (workout.sections.isNotEmpty()) {
+                                Text(
+                                    workout.sections.joinToString(" · ") { it.name },
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    },
+                    trailingContent = {
+                        Row {
+                            StartWorkoutIcon(workout.id) { onStartWorkout(workout.id) }
+                            IconButton(onClick = { confirmingRemoveId = workout.id }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Remove workout")
+                            }
+                        }
+                    },
                     modifier = Modifier.clickable { onWorkoutClick(workout.id) }
                 )
             }
             item { AddButton("New workout", onClick = onNewWorkout) }
         }
     }
+
+    if (isImporting) {
+        ImportTextDialog(
+            title = "Import workouts",
+            hint = "Paste exported JSON",
+            onImport = ::importWorkouts,
+            onDismiss = { isImporting = false }
+        )
+    }
+    if (isExporting) {
+        WorkoutsExportDialog(workouts = workouts, onDismiss = { isExporting = false })
+    }
+    workouts.find { it.id == confirmingRemoveId }?.let { workout ->
+        AlertDialog(
+            onDismissRequest = { confirmingRemoveId = null },
+            title = { Text("Remove ${workout.name}?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    AppRepository.removeWorkout(workout.id)
+                    confirmingRemoveId = null
+                }) { Text("Remove") }
+            },
+            dismissButton = { TextButton(onClick = { confirmingRemoveId = null }) { Text("Cancel") } }
+        )
+    }
+}
+
+@Composable
+fun WorkoutsExportDialog(workouts: List<Workout>, onDismiss: () -> Unit) {
+    var selected by remember { mutableStateOf(emptySet<String>()) }
+    var showText by remember { mutableStateOf(false) }
+
+    if (showText) {
+        ExportTextDialog(
+            title = "Export workouts",
+            text = exportWorkouts(
+                workouts.filter { it.id in selected },
+                AppRepository.state.value.archive,
+            ),
+            onDismiss = onDismiss
+        )
+        return
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Export workouts") },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                workouts.forEach { workout ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                selected = if (workout.id in selected) selected - workout.id else selected + workout.id
+                            }
+                    ) {
+                        Checkbox(
+                            checked = workout.id in selected,
+                            onCheckedChange = null
+                        )
+                        Text(workout.name)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = selected.isNotEmpty(),
+                onClick = { showText = true }
+            ) { Text("Export") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable
@@ -72,6 +197,33 @@ fun AddButton(contentDescription: String, onClick: () -> Unit) {
         }
     }
 }
+
+// Play arrow, or two "running" bars when this workout's session is active.
+@Composable
+fun StartWorkoutIcon(workoutId: String, onStart: () -> Unit) {
+    val session by FlowSession.state.collectAsStateWithLifecycle()
+    IconButton(onClick = onStart) {
+        if (session?.workoutId == workoutId) {
+            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                repeat(2) {
+                    Box(
+                        modifier = Modifier
+                            .width(5.dp)
+                            .height(18.dp)
+                            .background(LocalContentColor.current)
+                    )
+                }
+            }
+        } else {
+            Icon(Icons.Filled.PlayArrow, contentDescription = "Start workout")
+        }
+    }
+}
+
+fun fmtSecs(secs: Int) = if (secs % 60 == 0) "${secs / 60}m" else "${secs}s"
+
+fun fmtWeight(weightKg: Double) =
+    if (weightKg % 1.0 == 0.0) weightKg.toInt().toString() else weightKg.toString()
 
 
 class WorkoutState(private val workout: Workout) {
@@ -96,55 +248,54 @@ fun NullableIntField(label: String, value: Int?, onValueChange: (Int?) -> Unit) 
 }
 
 @Composable
-fun WorkoutScreen(workout: Workout, onBack: () -> Unit) {
+fun WorkoutScreen(workout: Workout, onBack: () -> Unit, onStart: () -> Unit) {
     var isEditing by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .safeDrawingPadding(),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .safeDrawingPadding()
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.align(Alignment.Start)) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+            Text(
+                workout.name,
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier
+                    .weight(1f)
+                    .clickable { isEditing = true }
+            )
+            StartWorkoutIcon(workout.id, onStart = onStart)
+            IconButton(onClick = {
+                AppRepository.addSection(workout.id, WorkoutSection(name = "New section"))
+            }) {
+                Icon(Icons.Filled.Add, contentDescription = "New section")
+            }
         }
 
-        Text(workout.name, style = MaterialTheme.typography.headlineMedium)
-        workout.description?.let { Text(it) }
-        Text("Section rest: ${workout.sectionRestSecs?.let { "${it}s" } ?: "default"}")
-        Button(onClick = { isEditing = true }) { Text("Edit") }
-
-        SectionsList(
-            workoutId = workout.id,
-            sections = workout.sections,
-            modifier = Modifier.weight(1f),
-            onNewSection = {
-                val section = WorkoutSection(
-                    name = "New section",
-                    exercises = emptyList(),
-                    restAfterSecs = null,
-                    exerciseRestSecs = null
-                )
-
-                AppRepository.addSection(workout.id, section)
-            },
-        )
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+        ) {
+            items(workout.sections) { section ->
+                SectionCard(workout = workout, section = section)
+            }
+        }
     }
 
     if (isEditing) {
-        WorkoutEditDialog(
-            workout = workout,
-            onDismiss = { isEditing = false },
-            onRemove = {
-                AppRepository.removeWorkout(workout.id)
-                onBack()
-            }
-        )
+        WorkoutEditDialog(workout = workout, onDismiss = { isEditing = false })
     }
 }
 
 @Composable
-fun WorkoutEditDialog(workout: Workout, onDismiss: () -> Unit, onRemove: () -> Unit) {
+fun WorkoutEditDialog(workout: Workout, onDismiss: () -> Unit) {
     val form = remember { WorkoutState(workout) }
 
     AlertDialog(
@@ -167,7 +318,6 @@ fun WorkoutEditDialog(workout: Workout, onDismiss: () -> Unit, onRemove: () -> U
                     onValueChange = { form.sectionRestSecs = it },
                     label = { Text("Section rest (secs)") }
                 )
-                TextButton(onClick = onRemove) { Text("Remove workout") }
             }
         },
         confirmButton = {
@@ -181,32 +331,65 @@ fun WorkoutEditDialog(workout: Workout, onDismiss: () -> Unit, onRemove: () -> U
 }
 
 @Composable
-fun SectionsList(
-    workoutId: String,
-    sections: List<WorkoutSection>,
-    onNewSection: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var editingSectionId by remember { mutableStateOf<String?>(null) }
+fun SectionCard(workout: Workout, section: WorkoutSection) {
+    val appData by AppRepository.state.collectAsStateWithLifecycle()
+    var isEditing by remember { mutableStateOf(false) }
+    var isPicking by remember { mutableStateOf(false) }
 
-    LazyColumn(modifier = modifier.fillMaxWidth()) {
-        items(sections) { section ->
-            ListItem(
-                headlineContent = { Text(section.name) },
-                trailingContent = {
-                    TextButton(onClick = { editingSectionId = section.id }) { Text("Edit") }
-                },
-                supportingContent = { ExerciesesList(workoutId, section.id, section.exercises) }
+    OutlinedCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                section.name,
+                style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier
+                    .clickable { isEditing = true }
+                    .padding(8.dp)
+            )
+            Text(
+                "${fmtSecs(section.restAfterSecs ?: workout.sectionRestSecs ?: appData.defaults.sectionRestSecs)} after",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = { isPicking = true }) {
+                Icon(Icons.Filled.Add, contentDescription = "New exercise")
+            }
+        }
+        section.description?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
         }
-        item { AddButton("New section", onClick = onNewSection) }
+        ExerciseTable(workoutId = workout.id, section = section, appData = appData)
     }
 
-    sections.find { it.id == editingSectionId }?.let { section ->
+    if (isEditing) {
         SectionEditDialog(
-            workoutId = workoutId,
+            workoutId = workout.id,
             section = section,
-            onDismiss = { editingSectionId = null }
+            onDismiss = { isEditing = false }
+        )
+    }
+    if (isPicking) {
+        ArchivePickerDialog(
+            onPick = { archived ->
+                AppRepository.addExercize(
+                    workout.id, section.id,
+                    WorkoutExercise(archiveExerciseId = archived.id)
+                )
+                isPicking = false
+            },
+            onDismiss = { isPicking = false }
         )
     }
 }
@@ -214,6 +397,8 @@ fun SectionsList(
 @Composable
 fun SectionEditDialog(workoutId: String, section: WorkoutSection, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf(section.name) }
+    var description by remember { mutableStateOf(section.description ?: "") }
+    var setRestSecs by remember { mutableStateOf(section.setRestSecs) }
     var exerciseRestSecs by remember { mutableStateOf(section.exerciseRestSecs) }
     var restAfterSecs by remember { mutableStateOf(section.restAfterSecs) }
 
@@ -221,13 +406,19 @@ fun SectionEditDialog(workoutId: String, section: WorkoutSection, onDismiss: () 
         onDismissRequest = onDismiss,
         title = { Text("Edit section") },
         text = {
-            Column {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 TextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Name") }
                 )
-                NullableIntField("Rest between exercises (s)", exerciseRestSecs) { exerciseRestSecs = it }
+                TextField(
+                    value = description,
+                    onValueChange = { description = it },
+                    label = { Text("Description") }
+                )
+                NullableIntField("Default set rest (s)", setRestSecs) { setRestSecs = it }
+                NullableIntField("Default exercise rest (s)", exerciseRestSecs) { exerciseRestSecs = it }
                 NullableIntField("Rest after section (s)", restAfterSecs) { restAfterSecs = it }
                 TextButton(onClick = {
                     AppRepository.removeSection(workoutId, section.id)
@@ -238,7 +429,13 @@ fun SectionEditDialog(workoutId: String, section: WorkoutSection, onDismiss: () 
         confirmButton = {
             TextButton(onClick = {
                 AppRepository.updateSection(workoutId, section.id) {
-                    it.copy(name = name, exerciseRestSecs = exerciseRestSecs, restAfterSecs = restAfterSecs)
+                    it.copy(
+                        name = name,
+                        description = description.ifBlank { null },
+                        setRestSecs = setRestSecs,
+                        exerciseRestSecs = exerciseRestSecs,
+                        restAfterSecs = restAfterSecs,
+                    )
                 }
                 onDismiss()
             }) { Text("Save") }
@@ -248,44 +445,100 @@ fun SectionEditDialog(workoutId: String, section: WorkoutSection, onDismiss: () 
 }
 
 @Composable
-fun ExerciesesList(workoutId: String, sectionId: String, exercises: List<WorkoutExercise>) {
+fun ExerciseTable(workoutId: String, section: WorkoutSection, appData: AppData) {
+    val defaults = appData.defaults
     var editingExerciseId by remember { mutableStateOf<String?>(null) }
+    var infoArchiveId by remember { mutableStateOf<String?>(null) }
 
-    Column(modifier = Modifier.fillMaxWidth()) {
-        exercises.forEach { exercise ->
-            Text(
-                AppRepository.archiveExercise(exercise.archiveExerciseId)?.name ?: "Unknown",
+    Column(modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+        Row(modifier = Modifier.fillMaxWidth()) {
+            val style = MaterialTheme.typography.labelSmall
+            Text("name", style = style, modifier = Modifier.weight(2f))
+            Text("sets", style = style, modifier = Modifier.weight(0.8f))
+            Text("reps", style = style, modifier = Modifier.weight(0.8f))
+            Text("weight", style = style, modifier = Modifier.weight(1f))
+            Text("set-rest", style = style, modifier = Modifier.weight(1f))
+            Text("ex-rest", style = style, modifier = Modifier.weight(1f))
+            Text("info", style = style, modifier = Modifier.weight(0.6f))
+        }
+        section.exercises.forEach { exercise ->
+            val archived = appData.archive.firstOrNull { it.id == exercise.archiveExerciseId }
+            val effort = exercise.effort ?: defaults.effort
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { editingExerciseId = exercise.id }
-            )
-        }
-        AddButton("New exercise") {
-            val archived = ArchiveExercise(name = "New exercise", description = null)
-            AppRepository.addArchiveExercise(archived)
-            AppRepository.addExercize(
-                workoutId, sectionId,
-                WorkoutExercise(
-                    archiveExerciseId = archived.id,
-                    lastVolume = 0,
-                    weightKg = null,
-                    effort = null,
-                    sets = null,
-                    setRestSecs = null,
-                    restAfterSecs = null,
+                    .padding(vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(archived?.name ?: "Unknown", modifier = Modifier.weight(2f))
+                Text("${exercise.sets ?: defaults.sets}", modifier = Modifier.weight(0.8f))
+                Text(if (effort.isDuration) fmtSecs(effort.amount) else "${effort.amount}", modifier = Modifier.weight(0.8f))
+                Text(fmtWeight(exercise.weightKg ?: defaults.weightKg), modifier = Modifier.weight(1f))
+                Text(
+                    fmtSecs(exercise.setRestSecs ?: section.setRestSecs ?: defaults.setRestSecs),
+                    modifier = Modifier.weight(1f)
                 )
-            )
+                Text(
+                    fmtSecs(exercise.restAfterSecs ?: section.exerciseRestSecs ?: defaults.exerciseRestSecs),
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    "?",
+                    modifier = Modifier
+                        .weight(0.6f)
+                        .clickable { infoArchiveId = exercise.archiveExerciseId }
+                )
+            }
         }
     }
 
-    exercises.find { it.id == editingExerciseId }?.let { exercise ->
+    section.exercises.find { it.id == editingExerciseId }?.let { exercise ->
         ExerciseEditDialog(
             workoutId = workoutId,
-            sectionId = sectionId,
+            sectionId = section.id,
             exercise = exercise,
             onDismiss = { editingExerciseId = null }
         )
     }
+    appData.archive.firstOrNull { it.id == infoArchiveId }?.let { archived ->
+        AlertDialog(
+            onDismissRequest = { infoArchiveId = null },
+            title = { Text(archived.name) },
+            text = { Text(archived.description ?: "No description") },
+            confirmButton = { TextButton(onClick = { infoArchiveId = null }) { Text("Close") } }
+        )
+    }
+}
+
+@Composable
+fun ArchivePickerDialog(onPick: (ArchiveExercise) -> Unit, onDismiss: () -> Unit) {
+    val appData by AppRepository.state.collectAsStateWithLifecycle()
+    var query by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choose exercise") },
+        text = {
+            if (appData.archive.isEmpty()) {
+                Text("Archive is empty. Add exercises on the archive page first.")
+            } else {
+                Column {
+                    SearchField(query) { query = it }
+                    LazyColumn {
+                        items(appData.archive.matching(query)) { archived ->
+                            ListItem(
+                                headlineContent = { Text(archived.name) },
+                                supportingContent = { archived.description?.let { Text(it) } },
+                                modifier = Modifier.clickable { onPick(archived) }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 @Composable
@@ -295,8 +548,7 @@ fun ExerciseEditDialog(
     exercise: WorkoutExercise,
     onDismiss: () -> Unit,
 ) {
-    var name by remember { mutableStateOf(AppRepository.archiveExercise(exercise.archiveExerciseId)?.name ?: "") }
-    var weightKg by remember { mutableStateOf(exercise.weightKg) }
+    var weightKg by remember { mutableStateOf(exercise.weightKg?.let(::fmtWeight) ?: "") }
     var effortAmount by remember { mutableStateOf(exercise.effort?.amount) }
     var isDuration by remember { mutableStateOf(exercise.effort?.isDuration ?: false) }
     var sets by remember { mutableStateOf(exercise.sets) }
@@ -309,11 +561,10 @@ fun ExerciseEditDialog(
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 TextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Name") }
+                    value = weightKg,
+                    onValueChange = { weightKg = it },
+                    label = { Text("Weight (kg)") }
                 )
-                NullableIntField("Weight (kg)", weightKg) { weightKg = it }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     NullableIntField(
                         if (isDuration) "Duration (s)" else "Reps",
@@ -323,7 +574,7 @@ fun ExerciseEditDialog(
                 }
                 NullableIntField("Sets", sets) { sets = it }
                 NullableIntField("Set rest (s)", setRestSecs) { setRestSecs = it }
-                NullableIntField("Rest after (s)", restAfterSecs) { restAfterSecs = it }
+                NullableIntField("Exercise rest (s)", restAfterSecs) { restAfterSecs = it }
                 TextButton(onClick = {
                     AppRepository.removeExercise(workoutId, sectionId, exercise.id)
                     onDismiss()
@@ -332,10 +583,9 @@ fun ExerciseEditDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                AppRepository.updateArchiveExercise(exercise.archiveExerciseId) { it.copy(name = name) }
                 AppRepository.updateExercise(workoutId, sectionId, exercise.id) {
                     it.copy(
-                        weightKg = weightKg,
+                        weightKg = weightKg.toDoubleOrNull(),
                         effort = effortAmount?.let { amount -> Effort(amount, isDuration) },
                         sets = sets,
                         setRestSecs = setRestSecs,
