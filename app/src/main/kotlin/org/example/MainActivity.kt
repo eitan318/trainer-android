@@ -1,15 +1,25 @@
 package com.eitan.trainer
 
+import android.app.Activity
 import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -26,9 +36,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         AppRepository.load(applicationContext)
         setContent {
-            MaterialTheme {
-                App()
-            }
+            App()
         }
     }
 }
@@ -40,36 +48,46 @@ fun App() {
     var showArchive by remember { mutableStateOf(false) }
     var flowWorkoutId by remember { mutableStateOf<String?>(null) }
 
-    val current = appData.workouts.find { it.id == openWorkoutId }
-    val flowWorkout = appData.workouts.find { it.id == flowWorkoutId }
-    if (flowWorkout != null) {
-        WorkoutFlowScreen(
-            workout = flowWorkout,
-            onExit = { flowWorkoutId = null }
-        )
-    } else if (showArchive) {
-        ArchiveScreen(
-            archive = appData.archive,
-            onBack = { showArchive = false }
-        )
-    } else if (current == null) {
-        WorkoutListScreen(
-            workouts = appData.workouts,
-            onWorkoutClick = { openWorkoutId = it },
-            onNewWorkout = {
-                val workout = Workout(name = "New workout")
-                AppRepository.addWorkout(workout)
-                openWorkoutId = workout.id
-            },
-            onOpenArchive = { showArchive = true },
-            onStartWorkout = { flowWorkoutId = it }
-        )
-    } else {
-        WorkoutScreen(
-            workout = current,
-            onBack = { openWorkoutId = null },
-            onStart = { flowWorkoutId = current.id }
-        )
+    val dark = appData.darkTheme ?: isSystemInDarkTheme()
+    val view = LocalView.current
+    SideEffect {
+        val window = (view.context as Activity).window
+        WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !dark
+    }
+
+    MaterialTheme(colorScheme = if (dark) darkColorScheme() else lightColorScheme()) {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            val current = appData.workouts.find { it.id == openWorkoutId }
+            val flowWorkout = appData.workouts.find { it.id == flowWorkoutId }
+            if (flowWorkout != null) {
+                WorkoutFlowScreen(
+                    workout = flowWorkout,
+                    onExit = { flowWorkoutId = null }
+                )
+            } else if (showArchive) {
+                ArchiveScreen(
+                    archive = appData.archive,
+                    onBack = { showArchive = false }
+                )
+            } else if (current == null) {
+                WorkoutListScreen(
+                    workouts = appData.workouts,
+                    onWorkoutClick = { openWorkoutId = it },
+                    onNewWorkout = {
+                        val workout = Workout(name = "New workout")
+                        AppRepository.addWorkout(workout)
+                        openWorkoutId = workout.id
+                    },
+                    onOpenArchive = { showArchive = true }
+                )
+            } else {
+                WorkoutScreen(
+                    workout = current,
+                    onBack = { openWorkoutId = null },
+                    onStart = { flowWorkoutId = current.id }
+                )
+            }
+        }
     }
 }
 
@@ -161,6 +179,14 @@ object AppRepository {
 
     fun addArchiveExercise(exercise: ArchiveExercise) {
         updateApp { data -> data.copy(archive = data.archive + exercise) }
+    }
+
+    fun updateArchiveExercise(id: String, transform: (ArchiveExercise) -> ArchiveExercise) {
+        updateApp { data ->
+            data.copy(archive = data.archive.map {
+                if (it.id == id) transform(it) else it
+            })
+        }
     }
 
     fun removeArchiveExercise(id: String) {

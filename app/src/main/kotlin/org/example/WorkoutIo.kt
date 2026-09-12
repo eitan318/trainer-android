@@ -24,7 +24,7 @@ fun exportWorkouts(workouts: List<Workout>, archive: List<ArchiveExercise>): Str
     )
 }
 
-fun importWorkouts(text: String) {
+fun importWorkouts(text: String, materialize: (ArchiveExercise) -> ArchiveExercise = { it }) {
     val bundle = runCatching {
         transferJson.decodeFromString(WorkoutExport.serializer(), text)
     }.getOrNull() ?: return
@@ -35,7 +35,7 @@ fun importWorkouts(text: String) {
     bundle.archive.forEach { entry ->
         val match = existing.firstOrNull { it.name.equals(entry.name, ignoreCase = true) }
         if (match != null) idMap[entry.id] = match.id
-        else AppRepository.addArchiveExercise(entry)
+        else AppRepository.addArchiveExercise(materialize(entry))
     }
 
     bundle.workouts.forEach { workout ->

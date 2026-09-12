@@ -6,6 +6,8 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class AppData(
     val defaults: DefaultSettings = DefaultSettings(),
+    // null follows the system setting.
+    val darkTheme: Boolean? = null,
     val archive: List<ArchiveExercise> = emptyList(),
     val workouts: List<Workout> = emptyList(),
 )
@@ -32,6 +34,13 @@ data class ArchiveExercise(
     val id: String = UUID.randomUUID().toString(),
     val name: String,
     val description: String? = null,
+    val videoUrl: String? = null,
+    // File name inside ExerciseImages' directory; device-local, so it may
+    // not resolve after an import from another device.
+    val imageFile: String? = null,
+    // Only meaningful in transfer files: converted to imageFile on import,
+    // never kept in app state.
+    val imageBase64: String? = null,
 )
 
 @Serializable

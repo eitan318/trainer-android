@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
@@ -181,7 +182,7 @@ fun WorkoutFlowScreen(workout: Workout, onExit: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable(onClick = onExit)
-                .padding(vertical = 8.dp)
+                .padding(vertical = 16.dp)
         )
 
         when {
@@ -237,8 +238,16 @@ private fun ExerciseInfo(step: FlowStep, defaults: DefaultSettings, archive: Lis
         textAlign = TextAlign.Center,
         modifier = Modifier.clickable { expanded = !expanded }
     )
-    archived?.description?.let { description ->
-        if (expanded) {
+    if (expanded && archived != null) {
+        archived.imageFile?.let {
+            ExerciseImage(
+                it,
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 200.dp)
+            )
+        }
+        archived.description?.let { description ->
             Text(
                 description,
                 style = MaterialTheme.typography.bodyLarge,
@@ -246,6 +255,7 @@ private fun ExerciseInfo(step: FlowStep, defaults: DefaultSettings, archive: Lis
                 modifier = Modifier.clickable { expanded = false }
             )
         }
+        archived.videoUrl?.let { VideoLink(it) }
     }
     Spacer(Modifier.height(24.dp))
     Text(

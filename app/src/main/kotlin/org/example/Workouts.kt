@@ -1,17 +1,15 @@
 package com.eitan.trainer
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -20,14 +18,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -40,6 +38,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -50,10 +50,11 @@ fun WorkoutListScreen(
     onWorkoutClick: (String) -> Unit,
     onNewWorkout: () -> Unit,
     onOpenArchive: () -> Unit,
-    onStartWorkout: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     var isImporting by remember { mutableStateOf(false) }
     var isExporting by remember { mutableStateOf(false) }
+    var isSettingsOpen by remember { mutableStateOf(false) }
     var confirmingRemoveId by remember { mutableStateOf<String?>(null) }
 
     Column(
@@ -72,9 +73,10 @@ fun WorkoutListScreen(
                     .weight(1f)
                     .padding(horizontal = 16.dp)
             )
-            TextButton(onClick = { isImporting = true }) { Text("Import") }
-            TextButton(onClick = { isExporting = true }) { Text("Export") }
-            TextButton(onClick = onOpenArchive) { Text("Archive") }
+            TopBarButton("Import") { isImporting = true }
+            TopBarButton("Export") { isExporting = true }
+            TopBarButton("Archive", onClick = onOpenArchive)
+            TopBarIconButton(Icons.Filled.Settings, "Settings") { isSettingsOpen = true }
         }
         LazyColumn(
             modifier = Modifier
@@ -96,11 +98,8 @@ fun WorkoutListScreen(
                         }
                     },
                     trailingContent = {
-                        Row {
-                            StartWorkoutIcon(workout.id) { onStartWorkout(workout.id) }
-                            IconButton(onClick = { confirmingRemoveId = workout.id }) {
-                                Icon(Icons.Filled.Delete, contentDescription = "Remove workout")
-                            }
+                        IconButton(onClick = { confirmingRemoveId = workout.id }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Remove workout")
                         }
                     },
                     modifier = Modifier.clickable { onWorkoutClick(workout.id) }
@@ -114,12 +113,15 @@ fun WorkoutListScreen(
         ImportTextDialog(
             title = "Import workouts",
             hint = "Paste exported JSON",
-            onImport = ::importWorkouts,
+            onImport = { text -> importWorkouts(text) { it.materialized(context) } },
             onDismiss = { isImporting = false }
         )
     }
     if (isExporting) {
         WorkoutsExportDialog(workouts = workouts, onDismiss = { isExporting = false })
+    }
+    if (isSettingsOpen) {
+        SettingsDialog(onDismiss = { isSettingsOpen = false })
     }
     workouts.find { it.id == confirmingRemoveId }?.let { workout ->
         AlertDialog(
@@ -186,6 +188,53 @@ fun WorkoutsExportDialog(workouts: List<Workout>, onDismiss: () -> Unit) {
     )
 }
 
+// Top-bar controls are larger than the Material defaults for easier tapping.
+@Composable
+fun TopBarButton(text: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.heightIn(min = 56.dp)) {
+        Text(text, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+@Composable
+fun TopBarIconButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit) {
+    IconButton(onClick = onClick, modifier = Modifier.size(56.dp)) {
+        Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(28.dp))
+    }
+}
+
+@Composable
+fun SettingsDialog(onDismiss: () -> Unit) {
+    val appData by AppRepository.state.collectAsStateWithLifecycle()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Settings") },
+        text = {
+            Column {
+                Text("Theme", style = MaterialTheme.typography.titleMedium)
+                listOf(
+                    null to "Follow system",
+                    false to "Light",
+                    true to "Dark",
+                ).forEach { (value, label) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { AppRepository.updateApp { it.copy(darkTheme = value) } }
+                            .padding(vertical = 4.dp)
+                    ) {
+                        RadioButton(selected = appData.darkTheme == value, onClick = null)
+                        Text(label)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } }
+    )
+}
+
 @Composable
 fun AddButton(contentDescription: String, onClick: () -> Unit) {
     Row(
@@ -194,28 +243,6 @@ fun AddButton(contentDescription: String, onClick: () -> Unit) {
     ) {
         IconButton(onClick = onClick) {
             Icon(Icons.Filled.Add, contentDescription = contentDescription)
-        }
-    }
-}
-
-// Play arrow, or two "running" bars when this workout's session is active.
-@Composable
-fun StartWorkoutIcon(workoutId: String, onStart: () -> Unit) {
-    val session by FlowSession.state.collectAsStateWithLifecycle()
-    IconButton(onClick = onStart) {
-        if (session?.workoutId == workoutId) {
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                repeat(2) {
-                    Box(
-                        modifier = Modifier
-                            .width(5.dp)
-                            .height(18.dp)
-                            .background(LocalContentColor.current)
-                    )
-                }
-            }
-        } else {
-            Icon(Icons.Filled.PlayArrow, contentDescription = "Start workout")
         }
     }
 }
@@ -260,21 +287,18 @@ fun WorkoutScreen(workout: Workout, onBack: () -> Unit, onStart: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
+            TopBarIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", onClick = onBack)
             Text(
                 workout.name,
                 style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier
                     .weight(1f)
                     .clickable { isEditing = true }
+                    .padding(vertical = 16.dp)
             )
-            StartWorkoutIcon(workout.id, onStart = onStart)
-            IconButton(onClick = {
+            TopBarButton("Start", onClick = onStart)
+            TopBarIconButton(Icons.Filled.Add, "New section") {
                 AppRepository.addSection(workout.id, WorkoutSection(name = "New section"))
-            }) {
-                Icon(Icons.Filled.Add, contentDescription = "New section")
             }
         }
 
@@ -505,7 +529,15 @@ fun ExerciseTable(workoutId: String, section: WorkoutSection, appData: AppData) 
         AlertDialog(
             onDismissRequest = { infoArchiveId = null },
             title = { Text(archived.name) },
-            text = { Text(archived.description ?: "No description") },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    archived.imageFile?.let {
+                        ExerciseImage(it, Modifier.fillMaxWidth().heightIn(max = 200.dp))
+                    }
+                    Text(archived.description ?: "No description")
+                    archived.videoUrl?.let { VideoLink(it) }
+                }
+            },
             confirmButton = { TextButton(onClick = { infoArchiveId = null }) { Text("Close") } }
         )
     }
