@@ -1,0 +1,124 @@
+{
+  "archive": [
+    {"id": "spin_ankle", "name": "spin_ankle", "description": "Circle the ankle in both directions"},
+    {"id": "spin_knee", "name": "spin_knee", "description": "Circle the knees, feet together, hands on knees"},
+    {"id": "spin_thigh", "name": "spin_thigh", "description": "Circle the leg from the hip"},
+    {"id": "spin_torso", "name": "spin_torso", "description": "Circle the upper body around the hips"},
+    {"id": "spin_spine", "name": "spin_spine", "description": "Rotate the spine segment by segment, top to bottom"},
+    {"id": "spin_scapulas", "name": "spin_scapulas", "description": "Roll the shoulder blades in full circles"},
+    {"id": "spin_neck", "name": "spin_neck", "description": "Slow neck circles, both directions"},
+    {"id": "dynamic_stretch_knee_up", "name": "dynamic_stretch_knee_up", "description": "Pull the knee up to the chest, alternating legs"},
+    {"id": "dynamic_stretch_ankle_to_butt", "name": "dynamic_stretch_ankle_to_butt", "description": "Pull the ankle to the glutes, alternating legs"},
+    {"id": "dynamic_stretch_dorsiflex", "name": "dynamic_stretch_dorsiflex", "description": "Rock onto the heels, pull the toes up toward the shins"},
+    {"id": "leg_swings_forward", "name": "leg_swings_forward", "description": "Swing a straight leg forward, holding support"},
+    {"id": "leg_swings_backward", "name": "leg_swings_backward", "description": "Swing a straight leg backward, holding support"},
+    {"id": "leg_swings_sides_front", "name": "leg_swings_sides_front", "description": "Swing the leg side to side in front of the body"},
+    {"id": "leg_swings_sides_back", "name": "leg_swings_sides_back", "description": "Swing the leg side to side behind the body"},
+    {"id": "arm_circles_big", "name": "arm_circles_big", "description": "Full straight-arm circles, both directions"},
+    {"id": "arm_circles_small", "name": "arm_circles_small", "description": "Small fast straight-arm circles"},
+    {"id": "wrist_circles", "name": "wrist_circles", "description": "Circle the wrists in both directions"},
+    {"id": "squats", "name": "squats", "description": "Bodyweight squat to full depth, heels down"},
+    {"id": "Explosive_squats", "name": "Explosive_squats", "description": "Controlled descent, drive up as fast as possible"},
+    {"id": "pogo_jumps", "name": "pogo_jumps", "description": "Straight-leg ankle bounces, minimal ground contact"},
+    {"id": "lunges", "name": "lunges", "description": "Forward lunge, knee tracking over the toes"},
+    {"id": "Explosive_lunges", "name": "Explosive_lunges", "description": "Lunge, then drive up explosively"},
+    {"id": "Lateral_lunges", "name": "Lateral_lunges", "description": "Step sideways, sit into the hip, other leg straight"},
+    {"id": "hang", "name": "hang", "description": "Dead hang from the bar"},
+    {"id": "pull_ups", "name": "pull_ups", "description": "From dead hang, chin over the bar, controlled descent"},
+    {"id": "tibialis", "name": "tibialis", "description": "Back against wall, raise the toes toward the shins"},
+    {"id": "Box_pistol_squat", "name": "Box_pistol_squat", "description": "One-leg squat down to a box, stand up on the same leg"},
+    {"id": "rows_controled", "name": "rows_controled", "description": "Row with slow tempo, squeeze the shoulder blades"},
+    {"id": "hip_thrust", "name": "hip_thrust", "description": "Upper back on bench, drive the hips up, squeeze glutes at top"},
+    {"id": "push_ups", "name": "push_ups", "description": "Body straight, chest to the floor, full lockout"},
+    {"id": "Back_low0_lunge", "name": "Back_low0_lunge"},
+    {"id": "overhead_press", "name": "overhead_press", "description": "Press from the shoulders to overhead lockout"},
+    {"id": "Diagonal_lateral_pully", "name": "Diagonal_lateral_pully", "description": "Pull the cable diagonally across the body"},
+    {"id": "bicep_curls_inclined", "name": "bicep_curls_inclined", "description": "Curls lying back on an incline bench, arms hanging"},
+    {"id": "tricep_extensions", "name": "tricep_extensions", "description": "Extend the forearms with elbows fixed in place"},
+    {"id": "tuck_jumps", "name": "tuck_jumps", "description": "Jump and pull the knees to the chest, land soft"},
+    {"id": "split_squat_jumps", "name": "split_squat_jumps", "description": "Jump lunge, switching legs mid-air"},
+    {"id": "explosive_push_ups", "name": "explosive_push_ups", "description": "Push hard enough for the hands to leave the floor"},
+    {"id": "fast_squats", "name": "fast_squats", "description": "Bodyweight squats at maximum speed"},
+    {"id": "twists", "name": "twists", "description": "Seated, rotate the weight side to side, feet off the floor"},
+    {"id": "90deg", "name": "90deg", "description": "90/90 hip stretch, lean over the front shin"},
+    {"id": "split", "name": "split", "description": "Split stretch, hold at a comfortable max"},
+    {"id": "cross_body_shoulder", "name": "cross_body_shoulder", "description": "Pull the arm across the chest with the other arm"},
+    {"id": "lat_stretch", "name": "lat_stretch", "description": "Arm overhead, lean sideways to stretch the lat"}
+  ],
+  "workouts": [
+    {
+      "name": "Workout1",
+      "sections": [
+        {
+          "name": "Warmup",
+          "exercises": [
+            {"archiveExerciseId": "spin_ankle", "effort": {"amount": 5}},
+            {"archiveExerciseId": "spin_knee", "effort": {"amount": 5}},
+            {"archiveExerciseId": "spin_thigh", "effort": {"amount": 5}},
+            {"archiveExerciseId": "spin_torso", "effort": {"amount": 5}},
+            {"archiveExerciseId": "spin_spine", "effort": {"amount": 5}},
+            {"archiveExerciseId": "spin_scapulas", "effort": {"amount": 5}},
+            {"archiveExerciseId": "spin_neck", "effort": {"amount": 5}},
+            {"archiveExerciseId": "dynamic_stretch_knee_up", "effort": {"amount": 10}},
+            {"archiveExerciseId": "dynamic_stretch_ankle_to_butt", "effort": {"amount": 10}},
+            {"archiveExerciseId": "dynamic_stretch_dorsiflex", "effort": {"amount": 10}},
+            {"archiveExerciseId": "leg_swings_forward", "effort": {"amount": 5}},
+            {"archiveExerciseId": "leg_swings_backward", "effort": {"amount": 5}},
+            {"archiveExerciseId": "leg_swings_sides_front", "effort": {"amount": 5}},
+            {"archiveExerciseId": "leg_swings_sides_back", "effort": {"amount": 5}},
+            {"archiveExerciseId": "arm_circles_big", "effort": {"amount": 20}},
+            {"archiveExerciseId": "arm_circles_small", "effort": {"amount": 20}},
+            {"archiveExerciseId": "wrist_circles", "effort": {"amount": 20}},
+            {"archiveExerciseId": "squats", "effort": {"amount": 5}},
+            {"archiveExerciseId": "Explosive_squats", "effort": {"amount": 5}},
+            {"archiveExerciseId": "pogo_jumps", "effort": {"amount": 15}},
+            {"archiveExerciseId": "lunges", "effort": {"amount": 5}},
+            {"archiveExerciseId": "Explosive_lunges", "effort": {"amount": 5}},
+            {"archiveExerciseId": "Lateral_lunges", "effort": {"amount": 5}}
+          ]
+        },
+        {
+          "name": "Power",
+          "exercises": [
+            {"archiveExerciseId": "hang", "effort": {"amount": 20, "isDuration": true}},
+            {"archiveExerciseId": "pull_ups", "weightKg": 5, "effort": {"amount": 10}, "sets": 3},
+            {"archiveExerciseId": "tibialis", "effort": {"amount": 10}, "sets": 2},
+            {"archiveExerciseId": "Box_pistol_squat", "effort": {"amount": 8}, "sets": 3},
+            {"archiveExerciseId": "rows_controled", "weightKg": 22, "effort": {"amount": 10}, "sets": 2},
+            {"archiveExerciseId": "hip_thrust", "weightKg": 82.5, "effort": {"amount": 10}, "sets": 3},
+            {"archiveExerciseId": "push_ups", "effort": {"amount": 25}, "sets": 3},
+            {"archiveExerciseId": "Back_low0_lunge", "weightKg": 6, "effort": {"amount": 8}, "sets": 2},
+            {"archiveExerciseId": "overhead_press", "weightKg": 14, "effort": {"amount": 10}, "sets": 2},
+            {"archiveExerciseId": "Diagonal_lateral_pully", "weightKg": 8, "effort": {"amount": 12}, "sets": 2},
+            {"archiveExerciseId": "bicep_curls_inclined", "weightKg": 12, "effort": {"amount": 12}, "sets": 2},
+            {"archiveExerciseId": "tricep_extensions", "weightKg": 16, "effort": {"amount": 12}, "sets": 3}
+          ]
+        },
+        {
+          "name": "Explosive",
+          "exercises": [
+            {"archiveExerciseId": "tuck_jumps", "effort": {"amount": 10}},
+            {"archiveExerciseId": "split_squat_jumps", "effort": {"amount": 6}},
+            {"archiveExerciseId": "explosive_push_ups", "effort": {"amount": 5}}
+          ]
+        },
+        {
+          "name": "Burnout",
+          "exercises": [
+            {"archiveExerciseId": "fast_squats", "weightKg": 0, "effort": {"amount": 20}, "sets": 2},
+            {"archiveExerciseId": "twists", "weightKg": 10, "effort": {"amount": 60, "isDuration": true}}
+          ]
+        },
+        {
+          "name": "Post",
+          "exercises": [
+            {"archiveExerciseId": "90deg", "effort": {"amount": 30, "isDuration": true}, "sets": 2},
+            {"archiveExerciseId": "split", "effort": {"amount": 30, "isDuration": true}, "sets": 2},
+            {"archiveExerciseId": "cross_body_shoulder", "effort": {"amount": 30, "isDuration": true}, "sets": 2},
+            {"archiveExerciseId": "lat_stretch", "effort": {"amount": 30, "isDuration": true}, "sets": 2}
+          ]
+        }
+      ]
+    }
+  ]
+}
